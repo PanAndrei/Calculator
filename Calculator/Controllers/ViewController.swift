@@ -9,9 +9,21 @@ import UIKit
 
 class ViewController: UIViewController {
     
-    var height: CGFloat = 0
-    var width: CGFloat = 0
-    var calculationText = "0"
+    private var height: CGFloat = 0
+    private var width: CGFloat = 0
+    private var isFinishedTypingNumber = true
+    
+    private var displayValue: Double {
+        get {
+            guard let number = Double(textField.text!) else {
+                fatalError("cannot convert label text to a Double")
+            }
+            return number
+        }
+        set {
+            textField.text = String(newValue)
+        }
+    }
     
     // MARK: - buttons
     
@@ -23,13 +35,13 @@ class ViewController: UIViewController {
     
     private lazy var buttonDot: Button = {
         let b = Button(titleText: ".", colorBack: .blue, height: height / 6)
-        b.addTarget(self, action: #selector(dotPressed), for: .touchUpInside)
+        b.addTarget(self, action: #selector(numberPressed(_:)), for: .touchUpInside)
         return b
     }()
     
     private lazy var buttonEql: Button = {
         let b = Button(titleText: "=", colorBack: .orange, height: height / 6)
-        b.addTarget(self, action: #selector(equlPressed), for: .touchUpInside)
+        b.addTarget(self, action: #selector(calcPressed), for: .touchUpInside)
         return b
     }()
     
@@ -53,7 +65,7 @@ class ViewController: UIViewController {
     
     private lazy var buttonPlus: Button = {
         let b = Button(titleText: "+", colorBack: .orange, height: height / 6)
-        b.addTarget(self, action: #selector(plusPressed), for: .touchUpInside)
+        b.addTarget(self, action: #selector(calcPressed), for: .touchUpInside)
         return b
     }()
     
@@ -77,7 +89,7 @@ class ViewController: UIViewController {
     
     private lazy var buttonMinus: Button = {
         let b = Button(titleText: "-", colorBack: .orange, height: height / 6)
-        b.addTarget(self, action: #selector(minusPressed), for: .touchUpInside)
+        b.addTarget(self, action: #selector(calcPressed), for: .touchUpInside)
         return b
     }()
     
@@ -101,37 +113,37 @@ class ViewController: UIViewController {
     
     private lazy var buttonMult: Button = {
         let b = Button(titleText: "x", colorBack: .orange, height: height / 6)
-        b.addTarget(self, action: #selector(multPressed), for: .touchUpInside)
+        b.addTarget(self, action: #selector(calcPressed), for: .touchUpInside)
         return b
     }()
     
     private lazy var buttonPerc: Button = {
         let b = Button(titleText: "%", colorBack: .gray, height: height / 6)
-        b.addTarget(self, action: #selector(procPressed), for: .touchUpInside)
+        b.addTarget(self, action: #selector(calcPressed), for: .touchUpInside)
         return b
     }()
     
     private lazy var buttonChange: Button = {
         let b = Button(titleText: "+/-", colorBack: .gray, height: height / 6)
-        b.addTarget(self, action: #selector(changePressed), for: .touchUpInside)
+        b.addTarget(self, action: #selector(calcPressed), for: .touchUpInside)
         return b
     }()
     
     private lazy var buttonReset: Button = {
         let b = Button(titleText: "AC", colorBack: .gray, height: height / 6)
-        b.addTarget(self, action: #selector(resetPressed), for: .touchUpInside)
+        b.addTarget(self, action: #selector(calcPressed), for: .touchUpInside)
         return b
     }()
     
     private lazy var buttonDivis: Button = {
         let b = Button(titleText: "/", colorBack: .orange, height: height / 6)
-        b.addTarget(self, action: #selector(divPressed), for: .touchUpInside)
+        b.addTarget(self, action: #selector(calcPressed), for: .touchUpInside)
         return b
     }()
     
     private lazy var textField: UITextField = {
         let t = UITextField()
-        t.text = calculationText
+        t.text = "0"
         t.textColor = .white
         t.font = .systemFont(ofSize: height / 18)
         t.textAlignment = .right
@@ -192,9 +204,9 @@ class ViewController: UIViewController {
     
     private lazy var stack4: HorizontalStack = {
         let s = HorizontalStack()
-        s.addArrangedSubview(buttonPerc)
-        s.addArrangedSubview(buttonChange)
         s.addArrangedSubview(buttonReset)
+        s.addArrangedSubview(buttonChange)
+        s.addArrangedSubview(buttonPerc)
         s.addArrangedSubview(buttonDivis)
         return s
     }()
@@ -226,29 +238,36 @@ class ViewController: UIViewController {
     }
     
     // MARK: - button methods
-
+    
     @objc func numberPressed(_ sender: UIButton) {
-        calculationText += (sender.titleLabel?.text)!
-        textField.text = calculationText
+        if let newValue = sender.currentTitle {
+            if isFinishedTypingNumber {
+                textField.text = newValue
+                isFinishedTypingNumber = false
+            } else {
+                if newValue == "." {
+                    let isInt = floor(displayValue) == displayValue
+                    
+                    if !isInt {
+                        return
+                    }
+                }
+                textField.text = textField.text! + newValue
+            }
+        }
     }
-    @objc func dotPressed() {}
-    @objc func equlPressed() {}
-//    @objc func onePressed() {}
-//    @objc func twoPressed() {}
-//    @objc func threePressed() {}
-    @objc func plusPressed() {}
-//    @objc func fourPressed() {}
-//    @objc func fivePressed() {}
-//    @objc func sixPressed() {}
-    @objc func minusPressed() {}
-//    @objc func sevenPressed() {}
-//    @objc func eightPressed() {}
-//    @objc func ninePressed() {}
-    @objc func multPressed() {}
-    @objc func procPressed() {}
-    @objc func changePressed() {}
-    @objc func resetPressed() {}
-    @objc func divPressed() {}
+    
+    @objc func calcPressed(_ sender: UIButton) {
+        isFinishedTypingNumber = true
+        
+        if let calcMethod = sender.currentTitle {
+            let calculator = LogicModel(num: displayValue)
+            guard let result = calculator.calculate(symbol: calcMethod) else {
+                fatalError("the result of the calculation is nill")
+            }
+            displayValue = result
+        }
+    }
     
     // MARK: - settings
     
@@ -272,8 +291,10 @@ class ViewController: UIViewController {
         
         NSLayoutConstraint.activate([
             textField.trailingAnchor.constraint(equalTo: viewField.trailingAnchor, constant: -8),
-            textField.centerYAnchor.constraint(equalTo: viewField.centerYAnchor)
+            textField.centerYAnchor.constraint(equalTo: viewField.centerYAnchor),
+            textField.leadingAnchor.constraint(equalTo: viewField.leadingAnchor, constant: 8)
         ])
     }
 }
+
 
